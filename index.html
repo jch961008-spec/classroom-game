@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>비빔밥 챌린지 - 모둠 추첨권 미니게임 모음집</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #fef3c7;
+    }
+    .font-jua {
+      font-family: 'Jua', sans-serif;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.9); opacity: 0; }
+      70% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    .tab-active {
+      background-color: #ea580c;
+      color: white;
+      box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.4);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- 상단 헤더 & 모둠별 추첨권 현황판 -->
+  <header class="bg-white shadow-md border-b-4 border-orange-500 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-3">
+        <div class="flex items-center gap-3">
+          <span class="text-4xl">🍲</span>
+          <div>
+            <h1 class="text-2xl md:text-3xl font-jua text-orange-600 tracking-wide">랜덤 비빔밥 추첨권 쟁탈전!</h1>
+            <p class="text-xs text-gray-500 font-semibold">미니게임을 통과하고 모둠별 재료 추첨권을 획득하세요</p>
+          </div>
+        </div>
+
+        <!-- 모둠 점수판 -->
+        <div id="scoreboard" class="grid grid-cols-3 sm:grid-cols-6 gap-2 w-full md:w-auto">
+          <!-- JS로 1~6모둠 렌더링 -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 레이아웃 -->
+  <main class="max-w-7xl mx-auto w-full flex-1 px-4 py-6 flex flex-col gap-6">
+
+    <!-- 게임 선택 탭 (5종) -->
+    <nav class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+      <button onclick="switchGame(0)" id="tab-0" class="tab-btn tab-active py-3 px-4 rounded-2xl font-jua text-lg transition flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-orange-100 border-2 border-orange-200">
+        <span>⚡</span> 1. 이구동성 텔레파시
+      </button>
+      <button onclick="switchGame(1)" id="tab-1" class="tab-btn py-3 px-4 rounded-2xl font-jua text-lg transition flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-orange-100 border-2 border-orange-200">
+        <span>🔊</span> 2. 네 글자 이어말하기
+      </button>
+      <button onclick="switchGame(2)" id="tab-2" class="tab-btn py-3 px-4 rounded-2xl font-jua text-lg transition flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-orange-100 border-2 border-orange-200">
+        <span>🔤</span> 3. 초성 릴레이 폭탄
+      </button>
+      <button onclick="switchGame(3)" id="tab-3" class="tab-btn py-3 px-4 rounded-2xl font-jua text-lg transition flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-orange-100 border-2 border-orange-200">
+        <span>🔍</span> 4. 초근접 재료 맞히기
+      </button>
+      <button onclick="switchGame(4)" id="tab-4" class="tab-btn py-3 px-4 rounded-2xl font-jua text-lg transition flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-orange-100 border-2 border-orange-200 col-span-2 sm:col-span-1">
+        <span>✊</span> 5. 모둠 단합 가위바위보
+      </button>
+    </nav>
+
+    <!-- 게임 스테이지 영역 -->
+    <section class="bg-white rounded-3xl shadow-xl border-4 border-orange-300 flex-1 flex flex-col justify-between p-6 md:p-10 relative overflow-hidden">
+
+      <!-- 게임 0: 이구동성 텔레파시 -->
+      <div id="game-0" class="game-panel flex-1 flex flex-col justify-between items-center text-center">
+        <div class="w-full flex justify-between items-center border-b pb-3">
+          <span class="bg-orange-100 text-orange-800 font-bold px-3 py-1 rounded-full text-sm">규칙: 하나, 둘, 셋 하면 모둠원 전원이 동시에 같은 단어를 외치거나 같은 동작을 취하면 성공!</span>
+          <span class="text-sm text-gray-500 font-semibold" id="tele-counter">1 / 12</span>
+        </div>
+
+        <div id="tele-card" class="my-auto py-8 w-full max-w-3xl">
+          <p class="text-gray-400 font-bold mb-4 text-lg">주제를 확인하고 구호에 맞춰 동시에 외치세요!</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div class="bg-blue-50 border-4 border-blue-400 rounded-3xl p-8 shadow-sm">
+              <span class="text-xs font-bold text-blue-500 uppercase">선택 A</span>
+              <h2 id="tele-a" class="text-4xl md:text-5xl font-jua text-blue-700 mt-2">짜장면</h2>
+            </div>
+            <div class="bg-rose-50 border-4 border-rose-400 rounded-3xl p-8 shadow-sm">
+              <span class="text-xs font-bold text-rose-500 uppercase">선택 B</span>
+              <h2 id="tele-b" class="text-4xl md:text-5xl font-jua text-rose-700 mt-2">짬뽕</h2>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-4">
+          <button onclick="nextTelepathy(true)" class="bg-orange-500 hover:bg-orange-600 text-white font-jua text-2xl px-8 py-4 rounded-2xl shadow-lg transition transform active:scale-95">
+            🎲 다음 텔레파시 문제
+          </button>
+        </div>
+      </div>
+
+      <!-- 게임 1: 네 글자 이어말하기 -->
+      <div id="game-1" class="game-panel hidden flex-1 flex flex-col justify-between items-center text-center">
+        <div class="w-full flex justify-between items-center border-b pb-3">
+          <span class="bg-orange-100 text-orange-800 font-bold px-3 py-1 rounded-full text-sm">규칙: 선생님이 앞 두 글자를 외치면, 모둠원이 일제히(또는 지목된 학생이) 3초 안에 뒤 두 글자를 외칩니다!</span>
+          <span class="text-sm text-gray-500 font-semibold" id="four-counter">1 / 15</span>
+        </div>
+
+        <div class="my-auto py-8 flex flex-col items-center">
+          <div class="flex items-center gap-3 md:gap-5 mb-6">
+            <div id="four-1" class="w-24 h-28 md:w-32 md:h-36 bg-orange-500 text-white rounded-2xl flex items-center justify-center text-5xl md:text-6xl font-jua shadow-lg">비</div>
+            <div id="four-2" class="w-24 h-28 md:w-32 md:h-36 bg-orange-500 text-white rounded-2xl flex items-center justify-center text-5xl md:text-6xl font-jua shadow-lg">빔</div>
+            <div id="four-3" class="w-24 h-28 md:w-32 md:h-36 bg-gray-100 border-4 border-dashed border-gray-400 text-gray-800 rounded-2xl flex items-center justify-center text-5xl md:text-6xl font-jua">?</div>
+            <div id="four-4" class="w-24 h-28 md:w-32 md:h-36 bg-gray-100 border-4 border-dashed border-gray-400 text-gray-800 rounded-2xl flex items-center justify-center text-5xl md:text-6xl font-jua">?</div>
+          </div>
+          <p id="four-hint" class="text-lg text-gray-500 font-semibold h-7"></p>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-4">
+          <button onclick="revealFourAnswer()" class="bg-amber-500 hover:bg-amber-600 text-white font-jua text-2xl px-6 py-4 rounded-2xl shadow-lg transition">
+            💡 정답 예시 보기
+          </button>
+          <button onclick="nextFourWord()" class="bg-orange-500 hover:bg-orange-600 text-white font-jua text-2xl px-8 py-4 rounded-2xl shadow-lg transition">
+            ➡️ 다음 제시어
+          </button>
+        </div>
+      </div>
+
+      <!-- 게임 2: 초성 릴레이 폭탄 -->
+      <div id="game-2" class="game-panel hidden flex-1 flex flex-col justify-between items-center text-center">
+        <div class="w-full flex justify-between items-center border-b pb-3">
+          <span class="bg-orange-100 text-orange-800 font-bold px-3 py-1 rounded-full text-sm">규칙: 제한 시간 30초 안에 모둠원 전원이 돌아가며 겹치지 않게 초성 단어를 말하면 성공!</span>
+          <span class="text-sm text-gray-500 font-semibold">음식 / 학교 / 일반 단어 모두 허용</span>
+        </div>
+
+        <div class="my-auto py-6 flex flex-col md:flex-row items-center gap-10">
+          <!-- 초성 박스 -->
+          <div class="flex gap-4">
+            <div id="chosung-1" class="w-32 h-36 md:w-40 md:h-44 bg-indigo-600 text-white rounded-3xl flex items-center justify-center text-7xl md:text-8xl font-jua shadow-xl">ㄱ</div>
+            <div id="chosung-2" class="w-32 h-36 md:w-40 md:h-44 bg-indigo-600 text-white rounded-3xl flex items-center justify-center text-7xl md:text-8xl font-jua shadow-xl">ㅈ</div>
+          </div>
+
+          <!-- 타이머 -->
+          <div class="flex flex-col items-center bg-gray-50 p-6 rounded-3xl border-2 border-gray-200 min-w-[220px]">
+            <span class="text-sm font-bold text-gray-500 mb-1">남은 시간</span>
+            <div id="chosung-timer" class="text-6xl font-jua text-emerald-600 mb-4">30.0</div>
+            <div class="flex gap-2">
+              <button onclick="startChosungTimer(30)" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow">▶ 30초 시작</button>
+              <button onclick="startChosungTimer(15)" class="bg-teal-500 hover:bg-teal-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow">▶ 15초</button>
+              <button onclick="stopChosungTimer()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-3 py-2 rounded-xl text-sm">정지</button>
+            </div>
+          </div>
+        </div>
+
+        <p id="chosung-examples" class="text-gray-500 font-medium text-sm mb-2">예시 단어: 과자, 감자, 간장, 공책, 가족, 고추장...</p>
+
+        <div>
+          <button onclick="nextChosung()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-jua text-2xl px-8 py-4 rounded-2xl shadow-lg transition">
+            🔄 새로운 초성 뽑기
+          </button>
+        </div>
+      </div>
+
+      <!-- 게임 3: 초근접/초스피드 재료 스무고개 -->
+      <div id="game-3" class="game-panel hidden flex-1 flex flex-col justify-between items-center text-center">
+        <div class="w-full flex justify-between items-center border-b pb-3">
+          <span class="bg-orange-100 text-orange-800 font-bold px-3 py-1 rounded-full text-sm">규칙: 단계별 힌트를 보고 어떤 비빔밥 재료(또는 음식)인지 먼저 맞히는 모둠이 추첨권 획득!</span>
+          <span class="text-sm text-gray-500 font-semibold" id="quiz-counter">문제 1 / 8</span>
+        </div>
+
+        <div class="my-auto py-6 w-full max-w-2xl flex flex-col items-center gap-4">
+          <div id="quiz-answer-box" class="w-36 h-36 rounded-3xl bg-amber-100 border-4 border-amber-400 flex flex-col items-center justify-center shadow-inner mb-2">
+            <span id="quiz-emoji" class="text-6xl">❓</span>
+            <span id="quiz-answer-text" class="font-jua text-xl text-amber-900 mt-1 hidden">정답</span>
+          </div>
+
+          <div class="w-full space-y-2.5 text-left">
+            <div id="hint-1" class="bg-gray-100 p-3.5 rounded-2xl font-bold text-gray-700 text-lg border-l-8 border-orange-400">1단계 힌트가 여기에 표시됩니다.</div>
+            <div id="hint-2" class="bg-gray-50 p-3.5 rounded-2xl font-bold text-gray-400 text-lg border-l-8 border-gray-300">🔒 [힌트 열기] 버튼을 눌러 2단계 힌트를 확인하세요.</div>
+            <div id="hint-3" class="bg-gray-50 p-3.5 rounded-2xl font-bold text-gray-400 text-lg border-l-8 border-gray-300">🔒 [힌트 열기] 버튼을 눌러 결정적 힌트를 확인하세요.</div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-3">
+          <button onclick="openNextHint()" class="bg-blue-500 hover:bg-blue-600 text-white font-jua text-xl px-6 py-3.5 rounded-2xl shadow transition">
+            🔍 다음 힌트 열기
+          </button>
+          <button onclick="revealQuizAnswer()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-jua text-xl px-6 py-3.5 rounded-2xl shadow transition">
+            ⭕ 정답 공개!
+          </button>
+          <button onclick="nextQuizItem()" class="bg-orange-500 hover:bg-orange-600 text-white font-jua text-xl px-6 py-3.5 rounded-2xl shadow transition">
+            ➡️ 다음 문제
+          </button>
+        </div>
+      </div>
+
+      <!-- 게임 4: 모둠 단합 가위바위보 (선생님/기계를 이겨라) -->
+      <div id="game-4" class="game-panel hidden flex-1 flex flex-col justify-between items-center text-center">
+        <div class="w-full flex justify-between items-center border-b pb-3">
+          <span class="bg-orange-100 text-orange-800 font-bold px-3 py-1 rounded-full text-sm">규칙: 모둠원끼리 5초간 상의해서 '모둠 전원이 똑같은 가위/바위/보'를 머리 위로 냅니다! 화면을 이기면 추첨권 획득!</span>
+          <span class="text-sm text-rose-600 font-bold">※ 모둠원 중 한 명이라도 다른 걸 내면 무효!</span>
+        </div>
+
+        <div class="my-auto py-8 flex flex-col items-center">
+          <p id="rps-status" class="text-2xl font-jua text-gray-600 mb-4">모둠원끼리 무엇을 낼지 속닥속닥 정하세요!</p>
+          <div id="rps-box" class="w-48 h-48 md:w-56 md:h-56 rounded-full bg-orange-50 border-8 border-orange-400 flex items-center justify-center text-8xl md:text-9xl shadow-xl">
+            🤖
+          </div>
+          <p id="rps-win-cond" class="mt-4 text-xl font-bold text-indigo-700 h-8"></p>
+        </div>
+
+        <div class="flex gap-4">
+          <button onclick="playGroupRPS()" id="rps-btn" class="bg-rose-500 hover:bg-rose-600 text-white font-jua text-2xl px-10 py-4 rounded-2xl shadow-lg transition">
+            ✊✌️✋ 가위바위보 대결 시작!
+          </button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    // --- 1. 모둠별 스코어보드 상태 관리 ---
+    const teamScores = [1, 1, 1, 1, 1, 1]; // 기본 추첨권 1장씩 부여
+
+    function renderScoreboard() {
+      const board = document.getElementById('scoreboard');
+      board.innerHTML = teamScores.map((score, idx) => `
+        <div class="bg-orange-50 border-2 border-orange-200 rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2">
+          <span class="font-jua text-gray-700 text-sm md:text-base">${idx + 1}모둠</span>
+          <div class="flex items-center gap-1">
+            <button onclick="changeScore(${idx}, -1)" class="w-5 h-5 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs flex items-center justify-center">-</button>
+            <span class="font-jua text-lg text-orange-600 min-w-[26px] text-center">🎟️${score}</span>
+            <button onclick="changeScore(${idx}, 1)" class="w-5 h-5 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center justify-center">+</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function changeScore(teamIdx, delta) {
+      teamScores[teamIdx] = Math.max(0, teamScores[teamIdx] + delta);
+      renderScoreboard();
+    }
+
+    // --- 탭 전환 ---
+    function switchGame(idx) {
+      document.querySelectorAll('.game-panel').forEach((el, i) => {
+        el.classList.toggle('hidden', i !== idx);
+      });
+      document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        if (i === idx) {
+          btn.classList.add('tab-active');
+          btn.classList.remove('bg-white', 'text-gray-700');
+        } else {
+          btn.classList.remove('tab-active');
+          btn.classList.add('bg-white', 'text-gray-700');
+        }
+      });
+      stopChosungTimer();
+    }
+
+    // --- 게임 0: 이구동성 텔레파시 데이터 ---
+    const telepathyList = [
+      { a: "짜장면 🍜", b: "짬뽕 🌶️" },
+      { a: "반숙 계란후라이 🍳", b: "완숙 계란후라이 🥚" },
+      { a: "고추장 비빔밥 🌶️", b: "간장 비빔밥  soy" },
+      { a: "여름 방학 🏖️", b: "겨울 방학 ⛄" },
+      { a: "탕수육 부먹 🫗", b: "탕수육 찍먹 🥢" },
+      { a: "양념 치킨 🍗", b: "후라이드 치킨 🍖" },
+      { a: "김치찌개 🥘", b: "된장찌개 🍲" },
+      { a: "체육 시간 ⚽", b: "미술 시간 🎨" },
+      { a: "피자 🍕", b: "햄버거 🍔" },
+      { a: "소고기 🥩", b: "삼겹살 🥓" },
+      { a: "떡볶이 🍢", b: "라볶이 🍜" },
+      { a: "고양이 🐱", b: "강아지 🐶" }
+    ];
+    let teleIdx = 0;
+
+    function nextTelepathy(advance = true) {
+      if (advance) teleIdx = (teleIdx + 1) % telepathyList.length;
+      const item = telepathyList[teleIdx];
+      const card = document.getElementById('tele-card');
+      card.classList.remove('animate-pop');
+      void card.offsetWidth;
+      card.classList.add('animate-pop');
+
+      document.getElementById('tele-a').textContent = item.a;
+      document.getElementById('tele-b').textContent = item.b;
+      document.getElementById('tele-counter').textContent = `${teleIdx + 1} / ${telepathyList.length}`;
+    }
+
+    // --- 게임 1: 네 글자 이어말하기 데이터 ---
+    const fourWords = [
+      { f1: "비", f2: "빔", b1: "밥", b2: "국", hint: "예: 비빔국수, 비빔냉면, 비빔만두" },
+      { f1: "계", f2: "란", b1: "말", b2: "이", hint: "예: 계란말이, 계란후라이(5), 계란노른자" },
+      { f1: "고", f2: "추", b1: "장", b2: "찌", hint: "예: 고추장아찌, 고추참치, 고추튀김" },
+      { f1: "점", f2: "심", b1: "시", b2: "간", hint: "예: 점심시간, 점심급식, 점심메뉴" },
+      { f1: "초", f2: "등", b1: "학", b2: "교", hint: "예: 초등학교, 초등학생" },
+      { f1: "삼", f2: "겹", b1: "살", b2: "구", hint: "예: 삼겹살김밥, 삼겹살파티" },
+      { f1: "운", f2: "동", b1: "장", b2: "회", hint: "예: 운동선수, 운동신경, 운동시간" },
+      { f1: "김", f2: "치", b1: "찌", b2: "개", hint: "예: 김치찌개, 김치볶음, 김치만두" },
+      { f1: "떡", f2: "볶", b1: "이", b2: "국", hint: "예: 떡볶이집, 떡볶이떡" },
+      { f1: "우", f2: "리", b1: "모", b2: "둠", hint: "예: 우리모둠, 우리학교, 우리선생" },
+      { f1: "참", f2: "기", b1: "름", b2: "병", hint: "예: 참기름병, 참기름향" },
+      { f1: "아", f2: "이스", b1: "크", b2: "림", hint: "예: 아이스크림" },
+      { f1: "실", f2: "내", b1: "화", b2: "주", hint: "예: 실내화끈, 실내체육" },
+      { f1: "옥", f2: "수", b1: "수", b2: "콘", hint: "예: 옥수수빵, 옥수수수염" },
+      { f1: "생", f2: "일", b1: "파", b2: "티", hint: "예: 생일파티, 생일선물, 생일축하" }
+    ];
+    let fourIdx = 0;
+
+    function nextFourWord() {
+      fourIdx = (fourIdx + 1) % fourWords.length;
+      const item = fourWords[fourIdx];
+      document.getElementById('four-1').textContent = item.f1;
+      document.getElementById('four-2').textContent = item.f2;
+      document.getElementById('four-3').textContent = "?";
+      document.getElementById('four-4').textContent = "?";
+      document.getElementById('four-3').className = "w-24 h-28 md:w-32 md:h-36 bg-gray-100 border-4 border-dashed border-gray-400 text-gray-800 rounded-2xl flex items-center justify-center text-5xl md:text-6xl font-jua";
+      document.getElementById('four-4').className = "w-24 h-28 md:w-32 md:h-36 bg-gray-100 border-4 border-dashed border-gray-400 text-gray-800 rounded-2xl flex items-center justify-center text-5xl md:text-6xl font-jua";
+      document.getElementById('four-hint').textContent = "";
+      document.getElementById('four-counter').textContent = `${fourIdx + 1} / ${fourWords.length}`;
+    }
+
+    function revealFourAnswer() {
+      const item = fourWords[fourIdx];
+      document.getElementById('four-hint').textContent = item.hint;
+    }
+
+    // --- 게임 2: 초성 릴레이 폭탄 ---
+    const chosungList = [
+      { c1: "ㄱ", c2: "ㅈ", ex: "과자, 감자, 간장, 공책, 가족, 고추장" },
+      { c1: "ㅂ", c2: "ㅂ", ex: "비빔, 방법, 반찬(X), 보물(X), 밥집(X) -> 부부, 바보, 비누(X), 봄비, 별빛" },
+      { c1: "ㅅ", c2: "ㄱ", ex: "사과, 시계, 수박(X), 소금, 시간, 생각, 시골" },
+      { c1: "ㅇ", c2: "ㅇ", ex: "우유, 오이, 양말(X), 여우, 아이, 음악(X), 오리(X)" },
+      { c1: "ㅈ", c2: "ㄱ", ex: "장갑, 지갑, 자석(X), 전구, 조개, 중국" },
+      { c1: "ㅎ", c2: "ㄱ", ex: "학교, 한국, 한강, 향기, 휴가, 현관" },
+      { c1: "ㅁ", c2: "ㅈ", ex: "모자, 문자, 맥주, 먼지, 맛집, 무지" },
+      { c1: "ㅋ", c2: "ㅍ", ex: "커피, 쿠폰, 캠프, 코피, 카펫" }
+    ];
+    let chosungIdx = 0;
+    let timerInterval = null;
+
+    function nextChosung() {
+      stopChosungTimer();
+      chosungIdx = (chosungIdx + 1) % chosungList.length;
+      const item = chosungList[chosungIdx];
+      document.getElementById('chosung-1').textContent = item.c1;
+      document.getElementById('chosung-2').textContent = item.c2;
+      document.getElementById('chosung-examples').textContent = `예시 단어: ${item.ex}`;
+      document.getElementById('chosung-timer').textContent = "30.0";
+      document.getElementById('chosung-timer').className = "text-6xl font-jua text-emerald-600 mb-4";
+    }
+
+    function startChosungTimer(seconds) {
+      stopChosungTimer();
+      let remaining = seconds * 10;
+      const display = document.getElementById('chosung-timer');
+      display.className = "text-6xl font-jua text-emerald-600 mb-4";
+
+      timerInterval = setInterval(() => {
+        remaining--;
+        display.textContent = (remaining / 10).toFixed(1);
+        if (remaining <= 50) {
+          display.className = "text-6xl font-jua text-rose-600 animate-pulse mb-4";
+        }
+        if (remaining <= 0) {
+          stopChosungTimer();
+          display.textContent = "펑! 💥";
+        }
+      }, 100);
+    }
+
+    function stopChosungTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // --- 게임 3: 재료 스무고개 퀴즈 ---
+    const quizItems = [
+      {
+        emoji: "🌱",
+        answer: "콩나물",
+        h1: "1단계: 저는 노란 머리와 하얀 몸통을 가지고 있어요.",
+        h2: "2단계: 빛을 보지 않고 물을 먹고 쑥쑥 자라요.",
+        h3: "3단계: 아삭아삭하며 비빔밥과 해장국의 필수 단짝이에요!"
+      },
+      {
+        emoji: "🍳",
+        answer: "계란후라이",
+        h1: "1단계: 프라이팬에 기름을 두르면 지글지글 소리를 내요.",
+        h2: "2단계: 하얀 구름 한가운데 노란 해가 떠 있는 모양이에요.",
+        h3: "3단계: 비빔밥 맨 위에 올라가서 노른자를 톡 터뜨려 먹어요!"
+      },
+      {
+        emoji: "🌶️",
+        answer: "고추장",
+        h1: "1단계: 저는 옹기(항아리) 속에서 시간을 보내며 만들어져요.",
+        h2: "2단계: 색깔은 아주 새빨갛고, 매콤달콤한 맛을 내요.",
+        h3: "3단계: 한국인의 매운맛! 비빔밥과 떡볶이에 제가 빠지면 섭섭해요."
+      },
+      {
+        emoji: "🥬",
+        answer: "시금치",
+        h1: "1단계: 저는 초록색 잎을 가진 건강한 채소예요.",
+        h2: "2단계: 만화 캐릭터 '뽀빠이'가 저를 먹으면 근육이 불끈 솟아나요.",
+        h3: "3단계: 끓는 물에 살짝 데쳐서 참기름과 깨소금에 조물조물 무쳐 먹어요."
+      },
+      {
+        emoji: "🥫",
+        answer: "참치캔 (참치마요)",
+        h1: "1단계: 저는 원래 아주 넓은 바다를 헤엄치던 물고기예요.",
+        h2: "2단계: 동그란 철제 통조림 안에 기름과 함께 쏙 들어가 있어요.",
+        h3: "3단계: 마요네즈와 만나면 초등학생들이 제일 좋아하는 비빔밥 토핑이 돼요!"
+      },
+      {
+        emoji: "🍄",
+        answer: "버섯 (표고/느타리)",
+        h1: "1단계: 저는 우산 모양을 닮았지만 채소도 과일도 아니에요.",
+        h2: "2단계: 고기가 아닌데도 볶으면 쫄깃쫄깃 고기 같은 식감이 나요.",
+        h3: "3단계: 숲속의 나무나 땅에서 자라며, 우산 기둥과 갓으로 이루어져 있어요."
+      },
+      {
+        emoji: "🫗",
+        answer: "참기름",
+        h1: "1단계: 저는 아주 작은 씨앗(참깨)을 볶아서 꾹 짜낸 액체예요.",
+        h2: "2단계: 비빔밥의 가장 마지막 순간에 한 바퀴 휘리릭 둘러줘요.",
+        h3: "3단계: 뚜껑만 열어도 온 교실에 고소한 냄새가 진동해요!"
+      },
+      {
+        emoji: "🍙",
+        answer: "김가루",
+        h1: "1단계: 저는 바다의 바위에 붙어 자라는 검은색 해조류예요.",
+        h2: "2단계: 바삭하게 구운 뒤 잘게 부수어 비빔밥이나 주먹밥에 뿌려요.",
+        h3: "3단계: 짭조름하고 바삭해서 밥도둑이라고 불려요!"
+      }
+    ];
+    let quizIdx = 0;
+    let hintStep = 1;
+
+    function renderQuiz() {
+      const item = quizItems[quizIdx];
+      document.getElementById('quiz-counter').textContent = `문제 ${quizIdx + 1} / ${quizItems.length}`;
+      document.getElementById('quiz-emoji').textContent = "❓";
+      document.getElementById('quiz-answer-text').textContent = item.answer;
+      document.getElementById('quiz-answer-text').classList.add('hidden');
+
+      document.getElementById('hint-1').textContent = item.h1;
+      document.getElementById('hint-2').textContent = "🔒 [다음 힌트 열기]를 눌러 2단계 힌트를 확인하세요.";
+      document.getElementById('hint-2').className = "bg-gray-50 p-3.5 rounded-2xl font-bold text-gray-400 text-lg border-l-8 border-gray-300";
+      document.getElementById('hint-3').textContent = "🔒 [다음 힌트 열기]를 눌러 3단계 힌트를 확인하세요.";
+      document.getElementById('hint-3').className = "bg-gray-50 p-3.5 rounded-2xl font-bold text-gray-400 text-lg border-l-8 border-gray-300";
+    }
+
+    function openNextHint() {
+      const item = quizItems[quizIdx];
+      if (hintStep === 1) {
+        document.getElementById('hint-2').textContent = item.h2;
+        document.getElementById('hint-2').className = "bg-gray-100 p-3.5 rounded-2xl font-bold text-gray-700 text-lg border-l-8 border-blue-400 animate-pop";
+        hintStep = 2;
+      } else if (hintStep === 2) {
+        document.getElementById('hint-3').textContent = item.h3;
+        document.getElementById('hint-3').className = "bg-gray-100 p-3.5 rounded-2xl font-bold text-gray-700 text-lg border-l-8 border-emerald-400 animate-pop";
+        hintStep = 3;
+      }
+    }
+
+    function revealQuizAnswer() {
+      const item = quizItems[quizIdx];
+      document.getElementById('quiz-emoji').textContent = item.emoji;
+      document.getElementById('quiz-answer-text').classList.remove('hidden');
+    }
+
+    function nextQuizItem() {
+      quizIdx = (quizIdx + 1) % quizItems.length;
+      hintStep = 1;
+      renderQuiz();
+    }
+
+    // --- 게임 4: 모둠 단합 가위바위보 ---
+    function playGroupRPS() {
+      const btn = document.getElementById('rps-btn');
+      const box = document.getElementById('rps-box');
+      const status = document.getElementById('rps-status');
+      const winCond = document.getElementById('rps-win-cond');
+
+      btn.disabled = true;
+      winCond.textContent = "";
+      let count = 3;
+      status.textContent = "모둠원 전원 머리 위로 준비! 3초 전!";
+      box.textContent = "3️⃣";
+
+      const rpsChoices = [
+        { icon: "✊", name: "바위", winner: "✋ 보" },
+        { icon: "✌️", name: "가위", winner: "✊ 바위" },
+        { icon: "✋", name: "보", winner: "✌️ 가위" }
+      ];
+
+      const interval = setInterval(() => {
+        count--;
+        if (count === 2) {
+          box.textContent = "2️⃣";
+          status.textContent = "안 내면 진 거! 2초 전!";
+        } else if (count === 1) {
+          box.textContent = "1️⃣";
+          status.textContent = "가위~ 바위~ 보!!";
+        } else {
+          clearInterval(interval);
+          const pick = rpsChoices[Math.floor(Math.random() * rpsChoices.length)];
+          box.textContent = pick.icon;
+          box.classList.remove('animate-pop');
+          void box.offsetWidth;
+          box.classList.add('animate-pop');
+          status.textContent = `컴퓨터의 선택: [ ${pick.name} ]!`;
+          winCond.textContent = `🎉 모둠 전원이 [ ${pick.winner} ]를 냈다면 추첨권 획득!`;
+          btn.disabled = false;
+        }
+      }, 900);
+    }
+
+    // 초기 실행
+    renderScoreboard();
+    renderQuiz();
+  </script>
+</body>
+</html>
